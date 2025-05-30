@@ -42,7 +42,7 @@ class PostViewSet(viewsets.ModelViewSet):
         return Post.objects.all()
     
     def get_serializer_class(self):
-        if self.action == 'retrieve':
+        if self.action in ['retrieve', 'create', 'update', 'partial_update']:
             return PostDetailSerializer
         return PostListSerializer
     
