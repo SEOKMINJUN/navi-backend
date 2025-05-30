@@ -2,7 +2,7 @@
 from rest_framework import viewsets, permissions, status, filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.decorators import action
+from rest_framework.decorators import action, permission_classes
 from django.contrib.auth import get_user_model
 from django.db.models import F
 from accounts.models import User
@@ -11,6 +11,12 @@ from .serializers import (
     BoardSerializer, PostListSerializer, PostDetailSerializer, 
     CommentSerializer
 )
+
+class IsOwnerOrReadOnly(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return obj.author == request.user
 
 class BoardViewSet(viewsets.ModelViewSet):
     queryset = Board.objects.all()
@@ -27,7 +33,7 @@ class PostViewSet(viewsets.ModelViewSet):
     search_fields = ['title', 'content']
     ordering_fields = ['created_at', 'updated_at', 'view_count']
     ordering = ['-created_at']
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
     
     def get_queryset(self):
         board_id = self.request.query_params.get('board')
@@ -66,7 +72,7 @@ class PostViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
     
     def get_queryset(self):
         post_id = self.request.query_params.get('post')
@@ -77,7 +83,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
     
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def reply(self, request, pk=None):
         parent_comment = self.get_object()
         data = request.data.copy()
