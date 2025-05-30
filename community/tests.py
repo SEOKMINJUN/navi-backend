@@ -187,6 +187,56 @@ class PostTests(APITestCase):
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Post.objects.filter(id=self.post.id).count(), 0)
+    
+    def test_create_anonymous_post(self):
+        """익명 게시글 작성 테스트"""
+        self.client.force_authenticate(user=self.user)
+        url = reverse('post-list')
+        data = {
+            'title': '익명 게시글',
+            'content': '익명으로 작성된 게시글입니다.',
+            'board': self.board.id,
+            'is_anon': True
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        # 게시글 조회 시 작성자 정보가 익명으로 표시되는지 확인
+        post = Post.objects.get(title='익명 게시글')
+        self.assertTrue(post.is_anon)
+        
+        # 게시글 목록 조회 시 익명 표시 확인
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        anonymous_post = next(p for p in response.data if p['title'] == '익명 게시글')
+        self.assertTrue(anonymous_post['is_anon'])
+        self.assertEqual(anonymous_post['author']['nickname'], '익명')
+    
+    def test_update_anonymous_post(self):
+        """익명 게시글 수정 테스트"""
+        # 익명 게시글 생성
+        self.post.is_anon = True
+        self.post.save()
+        
+        self.client.force_authenticate(user=self.user)
+        url = reverse('post-detail', args=[self.post.id])
+        data = {
+            'title': '수정된 익명 게시글',
+            'content': '수정된 익명 게시글 내용입니다.',
+            'board': self.board.id,
+            'is_anon': True
+        }
+        response = self.client.put(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # 수정 후에도 익명 상태 유지 확인
+        self.post.refresh_from_db()
+        self.assertTrue(self.post.is_anon)
+        
+        # 다른 사용자가 익명 게시글 수정 시도
+        self.client.force_authenticate(user=self.user2)
+        response = self.client.put(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
 class CommentTests(APITestCase):

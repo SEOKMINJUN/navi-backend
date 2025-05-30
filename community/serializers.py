@@ -49,7 +49,8 @@ class PostListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = ['id', 'title', 'board', 'author', 'author_username', 
-                 'created_at', 'updated_at', 'view_count', 'comment_count']
+                 'created_at', 'updated_at', 'view_count', 'comment_count',
+                 'is_anon', 'likes']
         read_only_fields = ['author', 'view_count']
     
     def get_author_username(self, obj):
@@ -82,7 +83,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
         model = Post
         fields = ['id', 'title', 'content', 'board', 'board_name', 'author', 
                  'author_username', 'created_at', 'updated_at', 
-                 'view_count', 'comments', 'is_liked', 'likes']
+                 'view_count', 'comments', 'is_liked', 'likes', 'is_anon']
         read_only_fields = ['author', 'view_count']
     
     def get_author_username(self, obj):
