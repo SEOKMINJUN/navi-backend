@@ -10,16 +10,25 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = ['id', 'content', 'post', 'author', 'author_username', 'parent', 
-                 'created_at', 'updated_at', 'replies']
-        read_only_fields = ['author']
+                 'created_at', 'updated_at', 'replies', 'is_deleted']
+        read_only_fields = ['author', 'is_deleted']
     
     def get_author_username(self, obj):
+        if obj.is_deleted:
+            return "삭제된 댓글"
         return obj.author.username
     
     def get_replies(self, obj):
         if not hasattr(obj, 'replies'):
             return []
         return CommentSerializer(obj.replies.all(), many=True, context=self.context).data
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.is_deleted:
+            data['content'] = "삭제된 댓글입니다."
+            data['author'] = None
+        return data
     
     def create(self, validated_data):
         validated_data['author'] = self.context['request'].user

@@ -30,6 +30,17 @@ class Comment(models.Model):
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_deleted = models.BooleanField(default=False)
 
     def __str__(self):
+        if self.is_deleted:
+            return "삭제된 댓글"
         return f"Comment by {self.author.username} on {self.post.title}"
+
+    def delete(self, *args, **kwargs):
+        if self.replies.exists():
+            self.is_deleted = True
+            self.content = "삭제된 댓글입니다."
+            self.save()
+        else:
+            super().delete(*args, **kwargs)
