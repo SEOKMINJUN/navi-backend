@@ -7,8 +7,19 @@ from django.contrib.auth import get_user_model
 from .serializers import UserSignupSerializer, CustomTokenObtainPairSerializer
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.conf import settings
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.template.loader import render_to_string
+import random
+import string
+import logging
 
 User = get_user_model()
+
+logger = logging.getLogger(__name__)
 
 # #회원가입 뷰
 
@@ -86,3 +97,89 @@ class ResetPasswordView(APIView):
             request.user.set_password(new_password)
             request.user.save()
             return Response({'message': '비밀번호가 성공적으로 변경되었습니다.'}, status=status.HTTP_200_OK)
+
+class PasswordResetRequestView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+        if not email:
+            return Response({'error': '이메일을 입력해주세요.'}, status=400)
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'error': '해당 이메일로 등록된 사용자가 없습니다.'}, status=404)
+
+        # 임시 비밀번호 생성 (8자리)
+        temp_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+        
+        # 사용자 비밀번호 변경
+        user.set_password(temp_password)
+        user.save()
+
+        # 이메일 전송
+        subject = '[Navi] 비밀번호 초기화 안내'
+        message = f'''
+안녕하세요, {user.nickname}님.
+
+요청하신 비밀번호 초기화가 완료되었습니다.
+임시 비밀번호는 다음과 같습니다:
+
+{temp_password}
+
+보안을 위해 로그인 후 반드시 비밀번호를 변경해주세요.
+
+감사합니다.
+Navi 팀
+'''
+        try:
+            # 이메일 전송 시도
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+            
+            # 로그 기록
+            logger.info(f'비밀번호 초기화 이메일 전송 성공: {email}')
+            
+            return Response({
+                'message': '임시 비밀번호가 이메일로 전송되었습니다.',
+                'temp_password': temp_password  # 개발 환경에서만 임시 비밀번호 반환
+            }, status=200)
+            
+        except Exception as e:
+            # 에러 로그 기록
+            logger.error(f'비밀번호 초기화 이메일 전송 실패: {str(e)}')
+            return Response({
+                'error': '이메일 전송에 실패했습니다.',
+                'temp_password': temp_password  # 개발 환경에서만 임시 비밀번호 반환
+            }, status=500)
+        # Use this on production
+        # # 이메일 전송 시도
+        #     send_mail(
+        #         subject=subject,
+        #         message=message,
+        #         from_email=settings.DEFAULT_FROM_EMAIL,
+        #         recipient_list=[email],
+        #         fail_silently=False,
+        #     )
+            
+        #     # 로그 기록
+        #     logger.info(f'비밀번호 초기화 이메일 전송 성공: {email}')
+            
+        #     return Response({
+        #         'message': '임시 비밀번호가 이메일로 전송되었습니다.',
+        #         'temp_password': temp_password  # 개발 환경에서만 임시 비밀번호 반환
+        #     }, status=200)
+            
+        # except Exception as e:
+        #     # 에러 로그 기록
+        #     logger.error(f'비밀번호 초기화 이메일 전송 실패: {str(e)}')
+        #     return Response({
+        #         'error': '이메일 전송에 실패했습니다.',
+        #         'temp_password': temp_password  # 개발 환경에서만 임시 비밀번호 반환
+        #     }, status=500)

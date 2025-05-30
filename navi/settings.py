@@ -175,3 +175,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 AUTH_USER_MODEL = 'accounts.User'
+
+# 이메일 설정
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'noreply@navi.com' 
+
+# # 이메일 설정 Use this on production
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'  # Gmail SMTP 서버
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'your-email@gmail.com'  # 발신자 이메일
+# EMAIL_HOST_PASSWORD = 'your-app-password'  # Gmail 앱 비밀번호
+# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
