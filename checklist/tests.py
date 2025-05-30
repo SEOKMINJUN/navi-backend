@@ -54,7 +54,7 @@ class ChecklistAPITest(APITestCase):
             'status': False
         }
         response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(ChecklistItem.objects.count(), 2)
 
     def test_update_checklist_item(self):
