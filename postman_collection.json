@@ -1,0 +1,390 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+		"name": "Navi Test",
+		"description": "Navi 서비스 API 테스트",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. 계정 관리",
+			"item": [
+				{
+					"name": "1.1 회원가입",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"testuser\",\n    \"password\": \"testpass123\",\n    \"email\": \"test@example.com\",\n    \"student_id\": \"20240001\",\n    \"nickname\": \"테스트유저\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/signup/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "signup", ""]
+						},
+						"test": [
+							"pm.test(\"상태 코드가 201인지 확인\", function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"pm.test(\"회원가입 성공 메시지 확인\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.eql(\"회원가입 성공\");",
+							"});"
+						]
+					}
+				},
+				{
+					"name": "1.2 로그인",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"testuser\",\n    \"password\": \"testpass123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/login/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "login", ""]
+						},
+						"test": [
+							"pm.test(\"상태 코드가 200인지 확인\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"액세스 토큰과 리프레시 토큰이 있는지 확인\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('access');",
+							"    pm.expect(jsonData).to.have.property('refresh');",
+							"});",
+							"pm.test(\"토큰 저장\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.environment.set(\"access_token\", jsonData.access);",
+							"    pm.environment.set(\"refresh_token\", jsonData.refresh);",
+							"});"
+						]
+					}
+				},
+				{
+					"name": "1.3 토큰 갱신",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refresh\": \"{{refresh_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/token/refresh/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "token", "refresh", ""]
+						},
+						"test": [
+							"pm.test(\"상태 코드가 200인지 확인\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"새로운 액세스 토큰이 있는지 확인\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('access');",
+							"});"
+						]
+					}
+				},
+				{
+					"name": "1.4 비밀번호 재설정 (일반 사용자)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"current_password\": \"testpass123\",\n    \"new_password\": \"newpass123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/reset-password/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "reset-password", ""]
+						},
+						"test": [
+							"pm.test(\"상태 코드가 200인지 확인\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"비밀번호 변경 성공 메시지 확인\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.eql(\"비밀번호가 성공적으로 변경되었습니다.\");",
+							"});"
+						]
+					}
+				},
+				{
+					"name": "1.4 비밀번호 재설정 (관리자)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"testuser\",\n    \"new_password\": \"adminchanged123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/reset-password/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "reset-password", ""]
+						},
+						"test": [
+							"pm.test(\"상태 코드가 200인지 확인\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"비밀번호 변경 성공 메시지 확인\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.eql(\"비밀번호가 성공적으로 변경되었습니다.\");",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "2. 체크리스트",
+			"item": [
+				{
+					"name": "2.1 체크리스트 목록 조회",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/checklist/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "checklist", ""]
+						},
+						"test": [
+							"pm.test(\"상태 코드가 200인지 확인\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"응답이 배열인지 확인\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(Array.isArray(jsonData)).to.be.true;",
+							"});"
+						]
+					}
+				},
+				{
+					"name": "2.2 체크리스트 항목 생성",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"item_name\": \"새로운 할 일\",\n    \"status\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/checklist/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "checklist", ""]
+						},
+						"test": [
+							"pm.test(\"상태 코드가 200인지 확인\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"생성된 항목 확인\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.item_name).to.eql(\"새로운 할 일\");",
+							"    pm.expect(jsonData.status).to.be.false;",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "3. 일정 관리",
+			"item": [
+				{
+					"name": "3.1 일정 목록 조회",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/schedule/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "schedule", ""]
+						},
+						"test": [
+							"pm.test(\"상태 코드가 200인지 확인\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"응답이 배열인지 확인\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(Array.isArray(jsonData)).to.be.true;",
+							"});"
+						]
+					}
+				},
+				{
+					"name": "3.2 일정 생성",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"일정 2\",\n    \"description\": \"일정 세부 내용\",\n    \"start_time\": \"2024-03-20T10:00:00Z\",\n    \"end_time\": \"2024-03-20T12:00:00Z\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/schedule/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "schedule", ""]
+						},
+						"test": [
+							"pm.test(\"상태 코드가 201인지 확인\", function () {",
+							"    pm.response.to.have.status(201);",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "4. 커뮤니티",
+			"item": [
+				{
+					"name": "4.1 게시판 목록 조회",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/community/boards/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "community", "boards", ""]
+						},
+						"test": [
+							"pm.test(\"상태 코드가 200인지 확인\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"응답이 배열인지 확인\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(Array.isArray(jsonData)).to.be.true;",
+							"});"
+						]
+					}
+				},
+				{
+					"name": "4.2 게시글 목록 조회",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/community/posts/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "community", "posts", ""]
+						},
+						"test": [
+							"pm.test(\"상태 코드가 200인지 확인\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"응답이 배열인지 확인\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(Array.isArray(jsonData)).to.be.true;",
+							"});"
+						]
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		}
+	]
+} 
