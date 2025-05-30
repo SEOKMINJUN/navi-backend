@@ -46,6 +46,45 @@
   }
   ```
 
+### 비밀번호 초기화 요청
+- **URL**: `/api/password-reset-request/`
+- **Method**: `POST`
+- **인증**: 불필요
+- **Request Body**:
+  ```json
+  {
+    "email": "string"
+  }
+  ```
+- **Response**:
+  - 성공 (200):
+    ```json
+    {
+      "message": "임시 비밀번호가 이메일로 전송되었습니다.",
+      "temp_password": "string"
+    }
+    ```
+  - 실패:
+    - 이메일 누락 (400):
+      ```json
+      {
+        "error": "이메일을 입력해주세요."
+      }
+      ```
+    - 사용자 없음 (404):
+      ```json
+      {
+        "error": "해당 이메일로 등록된 사용자가 없습니다."
+      }
+      ```
+    - 이메일 전송 실패 (500):
+      ```json
+      {
+        "error": "이메일 전송에 실패했습니다.",
+        "temp_password": "string"
+      }
+      ```
+
 ### 비밀번호 재설정 (일반 사용자)
 - **URL**: `/api/reset-password/`
 - **Method**: `POST`
