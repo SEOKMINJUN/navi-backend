@@ -1,21 +1,59 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from .serializers import UserSignupSerializer
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth import get_user_model
+from .serializers import UserSignupSerializer, CustomTokenObtainPairSerializer
+from django.contrib.auth import authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
 
 User = get_user_model()
 
 # #회원가입 뷰
 
 class SignupView(APIView):
+    permission_classes = [AllowAny]
+    
     def post(self, request):
         serializer = UserSignupSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            user = serializer.save()
             return Response({'message': '회원가입 성공'}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+    permission_classes = (AllowAny,)
+
+    def post(self, request, *args, **kwargs):
+        username = request.data.get('username')
+        password = request.data.get('password')
+
+        if not username or not password:
+            return Response({
+                "message": "아이디와 비밀번호를 모두 입력해주세요."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        user = authenticate(request, username=username, password=password)
+        
+        if user is None:
+            return Response({
+                "message": "아이디 또는 비밀번호가 올바르지 않습니다."
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            "message": "로그인 성공",
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "user": {
+                "username": user.username,
+                "email": user.email,
+                "student_id": user.student_id,
+                "nickname": user.nickname
+            }
+        }, status=status.HTTP_200_OK)
 
 # # 비밀번호 재설정 뷰
 
