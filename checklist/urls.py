@@ -2,6 +2,6 @@ from django.urls import path
 from .views import ChecklistView
 
 urlpatterns = [
-    path('', ChecklistView.as_view(), name='checklist'),
-    path('<int:pk>/', ChecklistView.as_view(), name='checklist-detail'),
+    path('checklist/', ChecklistView.as_view(), name='checklist'),
+    path('checklist/<int:pk>/', ChecklistView.as_view(), name='checklist-detail'),
 ]

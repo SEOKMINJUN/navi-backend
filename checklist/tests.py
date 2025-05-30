@@ -58,7 +58,7 @@ class ChecklistAPITest(APITestCase):
         self.assertEqual(ChecklistItem.objects.count(), 2)
 
     def test_update_checklist_item(self):
-        url = reverse('checklist', args=[self.checklist_item.id])
+        url = reverse('checklist-detail', args=[self.checklist_item.id])
         data = {
             'status': True
         }
@@ -68,7 +68,7 @@ class ChecklistAPITest(APITestCase):
         self.assertTrue(self.checklist_item.status)
 
     def test_delete_checklist_item(self):
-        url = reverse('checklist', args=[self.checklist_item.id])
+        url = reverse('checklist-detail', args=[self.checklist_item.id])
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(ChecklistItem.objects.count(), 0)
