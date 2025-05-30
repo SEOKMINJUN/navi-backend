@@ -36,7 +36,7 @@ python manage.py runserver
 ```
 
 ## API 문서
-API 문서는 [API_DOCUMENTATION.md](API_DOCUMENTATION.md)에서 확인할 수 있습니다.
+API 문서는 [API_DOCUMENTATION.md](API_DOCUMENT.md)에서 확인할 수 있습니다.
 
 ## 테스트
 ```bash
