@@ -5,7 +5,7 @@ from rest_framework import status
 from datetime import datetime, timedelta
 from django.utils import timezone
 
-from .models import Board, Post, Comment
+from .models import Board, Post, Comment, PostLike
 from accounts.models import User
 
 class BoardTests(APITestCase):
@@ -293,3 +293,88 @@ class CommentTests(APITestCase):
         self.client.force_authenticate(user=self.user2)
         response = self.client.put(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class PostLikeTest(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass123',
+            email='test@example.com',
+            nickname='테스트',
+            student_id='20240001'
+        )
+        self.other_user = User.objects.create_user(
+            username='otheruser',
+            password='testpass123',
+            email='other@example.com',
+            nickname='다른사용자',
+            student_id='20240002'
+        )
+        self.board = Board.objects.create(
+            name='테스트 게시판',
+            description='테스트용 게시판입니다.'
+        )
+        self.post = Post.objects.create(
+            title='테스트 게시글',
+            content='테스트 내용입니다.',
+            author=self.user,
+            board=self.board
+        )
+        self.client.force_authenticate(user=self.user)
+    
+    def test_like_post(self):
+        """게시글 좋아요 테스트"""
+        url = reverse('post-like', kwargs={'pk': self.post.pk})
+        
+        # 좋아요 추가
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['message'], '좋아요가 추가되었습니다.')
+        self.post.refresh_from_db()
+        self.assertEqual(self.post.likes, 1)
+        
+        # 좋아요 취소
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['message'], '좋아요가 취소되었습니다.')
+        self.post.refresh_from_db()
+        self.assertEqual(self.post.likes, 0)
+    
+    def test_get_likes(self):
+        """게시글 좋아요 목록 조회 테스트"""
+        # 좋아요 추가
+        PostLike.objects.create(post=self.post, user=self.user)
+        PostLike.objects.create(post=self.post, user=self.other_user)
+        self.post.likes = 2
+        self.post.save()
+        
+        url = reverse('post-likes', kwargs={'pk': self.post.pk})
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['likes'], 2)
+        self.assertEqual(len(response.data['liked_users']), 2)
+        self.assertIn(self.user.username, response.data['liked_users'])
+        self.assertIn(self.other_user.username, response.data['liked_users'])
+    
+    def test_like_anonymous_post(self):
+        """익명 게시글 좋아요 테스트"""
+        self.post.is_anon = True
+        self.post.save()
+        
+        url = reverse('post-like', kwargs={'pk': self.post.pk})
+        response = self.client.post(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['message'], '좋아요가 추가되었습니다.')
+        self.post.refresh_from_db()
+        self.assertEqual(self.post.likes, 1)
+        
+        # 좋아요 목록 조회 시 익명 게시글도 정상적으로 표시
+        url = reverse('post-likes', kwargs={'pk': self.post.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['likes'], 1)
+        self.assertEqual(len(response.data['liked_users']), 1)
+        self.assertIn(self.user.username, response.data['liked_users'])

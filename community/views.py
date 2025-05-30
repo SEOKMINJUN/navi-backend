@@ -6,7 +6,7 @@ from rest_framework.decorators import action, permission_classes
 from django.contrib.auth import get_user_model
 from django.db.models import F
 from accounts.models import User
-from .models import Board, Post, Comment
+from .models import Board, Post, Comment, PostLike
 from .serializers import (
     BoardSerializer, PostListSerializer, PostDetailSerializer, 
     CommentSerializer
@@ -69,6 +69,35 @@ class PostViewSet(viewsets.ModelViewSet):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def like(self, request, pk=None):
+        post = self.get_object()
+        user = request.user
+
+        # 이미 좋아요를 눌렀는지 확인
+        like, created = PostLike.objects.get_or_create(post=post, user=user)
+        
+        if not created:
+            # 이미 좋아요를 눌렀다면 취소
+            like.delete()
+            post.likes = max(0, post.likes - 1)
+            post.save()
+            return Response({'message': '좋아요가 취소되었습니다.'}, status=status.HTTP_200_OK)
+        
+        # 좋아요 추가
+        post.likes += 1
+        post.save()
+        return Response({'message': '좋아요가 추가되었습니다.'}, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['get'])
+    def likes(self, request, pk=None):
+        post = self.get_object()
+        likes = PostLike.objects.filter(post=post)
+        return Response({
+            'likes': post.likes,
+            'liked_users': [like.user.username for like in likes]
+        })
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
