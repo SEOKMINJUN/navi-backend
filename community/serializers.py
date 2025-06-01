@@ -45,20 +45,25 @@ class PostListSerializer(serializers.ModelSerializer):
     author = UserSignupSerializer(read_only=True)
     author_username = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
-    
+    content = serializers.CharField(read_only=True)
+    likes = serializers.SerializerMethodField()
+
     class Meta:
         model = Post
-        fields = ['id', 'title', 'board', 'author', 'author_username', 
-                 'created_at', 'updated_at', 'view_count', 'comment_count',
-                 'is_anon', 'likes']
+        fields = ['id', 'title', 'content', 'board', 'author', 'author_username',
+                  'created_at', 'updated_at', 'view_count', 'comment_count',
+                  'is_anon', 'likes']
         read_only_fields = ['author', 'view_count']
-    
+
     def get_author_username(self, obj):
         return obj.author.username
-    
+
     def get_comment_count(self, obj):
         return obj.comments.count()
-    
+
+    def get_likes(self, obj):
+        return obj.liked_post.count()
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
         if instance.is_anon:
